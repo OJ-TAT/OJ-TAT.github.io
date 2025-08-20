@@ -5,89 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>实时报名 - 活动中心</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.6; color: #333; max-width: 600px;
-            margin: 20px auto; padding: 0 15px; background-color: #f4f4f4;
-        }
-        .container {
-            background-color: #fff; padding: 25px; border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        h1, h2 {
-            color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px;
-        }
-        .signup-section {
-            background-color: #e9f5ff; padding: 15px; border-radius: 8px; margin-bottom: 25px;
-            border: 1px solid #b3d7ff;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 20px auto; padding: 0 15px; background-color: #f4f4f4; }
+        .container { background-color: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1, h2 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; }
+        .signup-section { background-color: #e9f5ff; padding: 15px; border-radius: 8px; margin-bottom: 25px; border: 1px solid #b3d7ff; }
         .form-container { display: flex; gap: 10px; margin-bottom: 15px; }
-        #nameInput {
-            flex-grow: 1; padding: 10px; border: 1px solid #ddd;
-            border-radius: 4px; font-size: 1em;
-        }
-        #submitBtn {
-            padding: 10px 20px; border: none; background-color: #007bff; color: white;
-            border-radius: 4px; cursor: pointer; font-size: 1em; white-space: nowrap;
-        }
+        #nameInput { flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 1em; }
+        #submitBtn { padding: 10px 20px; border: none; background-color: #007bff; color: white; border-radius: 4px; cursor: pointer; font-size: 1em; white-space: nowrap; }
         #submitBtn:hover { background-color: #0056b3; }
-        .slots-container label {
-            font-weight: bold; display: block; margin-bottom: 10px;
-        }
+        .slots-container label { font-weight: bold; display: block; margin-bottom: 10px; }
         .slot-checkbox { display: flex; align-items: center; margin-bottom: 8px; }
         .slot-checkbox input { width: 18px; height: 18px; margin-right: 10px; }
         .slot-checkbox span { font-size: 1.1em; }
-        
-        .slot-accordion .slot-header {
-            background-color: #f0f0f0; padding: 12px; margin-top: 10px;
-            border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between;
-            align-items: center; transition: background-color 0.2s;
-        }
+        .slot-accordion .slot-header { background-color: #f0f0f0; padding: 12px; margin-top: 10px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s; }
         .slot-accordion .slot-header:hover { background-color: #e0e0e0; }
         .slot-accordion .slot-header h3 { margin: 0; font-size: 1.1em; }
         .slot-accordion .participant-count { font-weight: normal; color: #555; }
-        .slot-accordion .participant-list {
-            padding-left: 20px; border-left: 3px solid #007bff;
-            margin-top: 0; margin-bottom: 10px;
-            max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out;
-        }
-        .slot-accordion.active .participant-list {
-            max-height: 500px; /* Or a larger value if lists are long */
-            padding-top: 10px;
-        }
-        /* --- Style for list items and delete button --- */
-        .slot-accordion .participant-list li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            padding: 5px;
-        }
-        .delete-btn {
-            background: none;
-            border: none;
-            color: #dc3545;
-            font-size: 1.4em;
-            font-weight: bold;
-            cursor: pointer;
-            padding: 0 5px;
-            line-height: 1;
-        }
-        .delete-btn:hover {
-            color: #a71d2a;
-        }
-        /* --- End of new styles --- */
-        .arrow {
-            border: solid black; border-width: 0 2px 2px 0; display: inline-block;
-            padding: 3px; transform: rotate(45deg); transition: transform 0.3s;
-        }
+        .slot-accordion .participant-list { padding-left: 20px; border-left: 3px solid #007bff; margin-top: 0; margin-bottom: 10px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .slot-accordion.active .participant-list { max-height: 500px; padding-top: 10px; }
+        .slot-accordion .participant-list li { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 5px; }
+        .delete-btn { background: none; border: none; color: #dc3545; font-size: 1.4em; font-weight: bold; cursor: pointer; padding: 0 5px; line-height: 1; }
+        .delete-btn:hover { color: #a71d2a; }
+        .arrow { border: solid black; border-width: 0 2px 2px 0; display: inline-block; padding: 3px; transform: rotate(45deg); transition: transform 0.3s; }
         .slot-accordion.active .arrow { transform: rotate(-135deg); }
+        #no-slots-message { text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 4px; color: #6c757d; }
+        /* --- Admin Panel Styles --- */
+        .admin-toggle { text-align: center; margin-top: 20px; }
+        .admin-toggle button { background: none; border: none; color: #6c757d; cursor: pointer; text-decoration: underline; }
+        #admin-panel { display: none; background-color: #fffbe6; border: 1px solid #ffe58f; padding: 15px; border-radius: 8px; margin-top: 15px; }
+        #admin-panel h3 { margin-top: 0; }
+        .admin-form-group { margin-bottom: 10px; }
+        .admin-form-group label { display: block; margin-bottom: 5px; }
+        .admin-form-group input { width: calc(100% - 20px); padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .admin-form-group button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>羽毛球/篮球/足球局 - 实时报名</h1>
-
         <div class="signup-section">
             <h2>1. 填写名字并勾选场次</h2>
             <div class="form-container">
@@ -99,10 +54,26 @@
                 <!-- Checkboxes will be dynamically inserted here -->
             </div>
         </div>
-
         <h2>2. 各场次报名情况</h2>
         <div id="slots-accordion-container">
             <!-- Accordion lists will be dynamically inserted here -->
+        </div>
+        <div class="admin-toggle">
+            <button id="admin-login-btn">管理员入口</button>
+        </div>
+        <div id="admin-panel">
+            <h3>管理员后台</h3>
+            <div class="admin-form-group">
+                <label for="new-slot-label">场次名称 (例如: 8月21日周4，晚7-9)</label>
+                <input type="text" id="new-slot-label" placeholder="场次显示的名称">
+            </div>
+            <div class="admin-form-group">
+                <label for="new-slot-date">场次结束日期 (过期后会自动隐藏)</label>
+                <input type="date" id="new-slot-date">
+            </div>
+            <div class="admin-form-group">
+                <button id="add-slot-btn">添加新场次</button>
+            </div>
         </div>
     </div>
 
@@ -111,19 +82,11 @@
 
     <script>
         // =================================================================================
-        // ==  在这里管理你的场次 (这是你唯一需要修改的地方！)  ==
+        // ==  在这里设置你的管理员密码 (只需要设置这一次！)  ==
         // =================================================================================
-        const availableSlots = [
-            { id: 'sat-23-aug', label: '8月21日周4，晚7-9' },
-            { id: 'sun-24-aug', label: '8月24日周7，晚4-6' },
-            { id: 'tue-26-aug', label: '8月26日周2，晚7-9' },
-            { id: 'thur-28-aug', label: '8月28日周4，晚7-9' },
-            // 像这样复制上一行来添加新场次, id 必须唯一
-            // { id: 'new-game-id', label: '显示给用户的文字' }
-        ];
+        const ADMIN_PASSWORD = "change_this_password"; // 强烈建议修改成你自己的密码
         // =================================================================================
 
-        // Your specific Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBczhQyTGzdUceUiec9zLEpK5TpA4rApSw",
             authDomain: "ni-lai-da-qiu-ma.firebaseapp.com",
@@ -137,74 +100,86 @@
         
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        const slotsDefRef = database.ref('_event_definitions'); // New location for storing slot definitions
 
         const nameInput = document.getElementById('nameInput');
         const submitBtn = document.getElementById('submitBtn');
         const slotsCheckboxContainer = document.getElementById('slots-checkbox-container');
         const slotsAccordionContainer = document.getElementById('slots-accordion-container');
+        const adminLoginBtn = document.getElementById('admin-login-btn');
+        const adminPanel = document.getElementById('admin-panel');
+        const addSlotBtn = document.getElementById('add-slot-btn');
 
-        let participantsBySlot = {}; // Used to store the list of participants for each slot
+        let participantsBySlot = {};
+        let availableSlots = [];
 
-        // Dynamically generate page content
-        availableSlots.forEach(slot => {
-            // ... (Creation of checkboxes and accordion structure remains the same)
-            const checkboxDiv = document.createElement('div');
-            checkboxDiv.className = 'slot-checkbox';
-            checkboxDiv.innerHTML = `<input type="checkbox" id="check-${slot.id}" data-slot-id="${slot.id}"><label for="check-${slot.id}"><span>${slot.label}</span></label>`;
-            slotsCheckboxContainer.appendChild(checkboxDiv);
-            const accordionDiv = document.createElement('div');
-            accordionDiv.className = 'slot-accordion';
-            accordionDiv.id = `accordion-${slot.id}`;
-            accordionDiv.innerHTML = `<div class="slot-header"><h3>${slot.label} (<span class="participant-count">0</span>人)</h3><i class="arrow"></i></div><ul class="participant-list"></ul>`;
-            slotsAccordionContainer.appendChild(accordionDiv);
-            listenToSlot(slot.id);
-        });
-        
-        // --- UPDATED Event Listener for both accordion and delete button ---
-        slotsAccordionContainer.addEventListener('click', function(event) {
-            // Handle delete button click
-            if (event.target.classList.contains('delete-btn')) {
-                const li = event.target.closest('li');
-                const key = li.dataset.key; // The unique key from Firebase
-                const accordion = li.closest('.slot-accordion');
-                const slotId = accordion.id.replace('accordion-', '');
-                const name = li.querySelector('span').textContent;
-
-                if (confirm(`确定要从【${availableSlots.find(s => s.id === slotId).label}】中删除“${name}”吗？`)) {
-                    // Remove the specific participant from Firebase
-                    database.ref('games/' + slotId + '/' + key).remove();
+        // Listen for changes in slot definitions from Firebase
+        slotsDefRef.on('value', (snapshot) => {
+            const allDefinedSlotsData = snapshot.val();
+            const allDefinedSlots = [];
+            if (allDefinedSlotsData) {
+                for (const key in allDefinedSlotsData) {
+                    allDefinedSlots.push({
+                        id: key, // The unique key from Firebase is now the ID
+                        label: allDefinedSlotsData[key].label,
+                        endDate: allDefinedSlotsData[key].endDate
+                    });
                 }
-                return; // Stop further actions
             }
 
-            // Handle accordion collapse/expand
-            const header = event.target.closest('.slot-header');
-            if (header) {
-                header.parentElement.classList.toggle('active');
-            }
+            // Filter out past slots
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            availableSlots = allDefinedSlots.filter(slot => new Date(slot.endDate) >= today);
+            
+            // Re-render the entire page based on the new slot definitions
+            renderPage();
         });
 
+        function renderPage() {
+            // Clear existing content
+            slotsCheckboxContainer.innerHTML = '<label>请选择要参加的场次：</label>';
+            slotsAccordionContainer.innerHTML = '';
 
-        function listenToSlot(slotId) {
+            if (availableSlots.length > 0) {
+                availableSlots.forEach(slot => {
+                    const checkboxDiv = document.createElement('div');
+                    checkboxDiv.className = 'slot-checkbox';
+                    checkboxDiv.innerHTML = `<input type="checkbox" id="check-${slot.id}" data-slot-id="${slot.id}"><label for="check-${slot.id}"><span>${slot.label}</span></label>`;
+                    slotsCheckboxContainer.appendChild(checkboxDiv);
+                    
+                    const accordionDiv = document.createElement('div');
+                    accordionDiv.className = 'slot-accordion';
+                    accordionDiv.id = `accordion-${slot.id}`;
+                    accordionDiv.innerHTML = `<div class="slot-header"><h3>${slot.label} (<span class="participant-count">0</span>人)</h3><i class="arrow"></i></div><ul class="participant-list"></ul>`;
+                    slotsAccordionContainer.appendChild(accordionDiv);
+                    
+                    listenToSlotParticipants(slot.id);
+                });
+                document.querySelector('.signup-section .form-container').style.display = 'flex';
+            } else {
+                slotsCheckboxContainer.innerHTML = '<p id="no-slots-message">当前没有可报名的场次，请等待组织者发布。</p>';
+                document.querySelector('.signup-section .form-container').style.display = 'none';
+            }
+        }
+
+        function listenToSlotParticipants(slotId) {
             const participantsRef = database.ref('games/' + slotId);
             participantsRef.on('value', (snapshot) => {
                 const participantsData = snapshot.val();
                 const accordion = document.getElementById(`accordion-${slotId}`);
+                if (!accordion) return; // If slot was removed, accordion might not exist
                 const listElement = accordion.querySelector('.participant-list');
                 const countElement = accordion.querySelector('.participant-count');
-                
                 listElement.innerHTML = '';
                 participantsBySlot[slotId] = [];
                 let count = 0;
-
                 if (participantsData) {
                     for (const key in participantsData) {
                         const name = participantsData[key].name;
                         participantsBySlot[slotId].push(name.toLowerCase().trim());
-                        
-                        // --- UPDATED: Create list item with delete button ---
                         const li = document.createElement('li');
-                        li.dataset.key = key; // Store the unique Firebase key on the element
+                        li.dataset.key = key;
                         li.innerHTML = `<span>${name}</span><button class="delete-btn" title="删除">&times;</button>`;
                         listElement.appendChild(li);
                         count++;
@@ -214,8 +189,59 @@
             });
         }
 
+        // --- Admin Panel Logic ---
+        adminLoginBtn.addEventListener('click', () => {
+            const pass = prompt("请输入管理员密码:");
+            if (pass === ADMIN_PASSWORD) {
+                adminPanel.style.display = 'block';
+                alert("欢迎回来，管理员！");
+            } else if (pass) {
+                alert("密码错误！");
+            }
+        });
+
+        addSlotBtn.addEventListener('click', () => {
+            const label = document.getElementById('new-slot-label').value.trim();
+            const endDate = document.getElementById('new-slot-date').value;
+
+            if (!label || !endDate) {
+                alert("场次名称和结束日期都不能为空！");
+                return;
+            }
+
+            // Push new slot definition to Firebase. Firebase will generate a unique key.
+            slotsDefRef.push({
+                label: label,
+                endDate: endDate
+            });
+
+            // Clear input fields
+            document.getElementById('new-slot-label').value = '';
+            document.getElementById('new-slot-date').value = '';
+            alert("新场次添加成功！页面将自动刷新。");
+        });
+
+        // --- Event Listeners for signup, delete, and accordion ---
+        slotsAccordionContainer.addEventListener('click', function(event) {
+            if (event.target.classList.contains('delete-btn')) {
+                const li = event.target.closest('li');
+                const key = li.dataset.key;
+                const accordion = li.closest('.slot-accordion');
+                const slotId = accordion.id.replace('accordion-', '');
+                const name = li.querySelector('span').textContent;
+                const slot = availableSlots.find(s => s.id === slotId);
+                if (slot && confirm(`确定要从【${slot.label}】中删除“${name}”吗？`)) {
+                    database.ref('games/' + slotId + '/' + key).remove();
+                }
+                return;
+            }
+            const header = event.target.closest('.slot-header');
+            if (header) {
+                header.parentElement.classList.toggle('active');
+            }
+        });
+
         function signUp() {
-            // ... (The signUp function remains exactly the same)
             const name = nameInput.value.trim();
             if (!name) { alert("请输入你的名字！"); return; }
             const selectedCheckboxes = document.querySelectorAll('#slots-checkbox-container input[type="checkbox"]:checked');
@@ -225,11 +251,14 @@
             selectedCheckboxes.forEach(checkbox => {
                 const slotId = checkbox.dataset.slotId;
                 const currentParticipants = participantsBySlot[slotId] || [];
-                if (currentParticipants.includes(name.toLowerCase())) {
-                    alreadyJoined.push(availableSlots.find(s => s.id === slotId).label);
-                } else {
-                    database.ref('games/' + slotId).push({ name: name });
-                    successCount++;
+                const slot = availableSlots.find(s => s.id === slotId);
+                if (slot) {
+                    if (currentParticipants.includes(name.toLowerCase())) {
+                        alreadyJoined.push(slot.label);
+                    } else {
+                        database.ref('games/' + slotId).push({ name: name });
+                        successCount++;
+                    }
                 }
             });
             let feedbackMessage = "";
@@ -241,7 +270,6 @@
         }
 
         submitBtn.addEventListener('click', signUp);
-
     </script>
 </body>
 </html>
