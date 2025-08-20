@@ -17,150 +17,212 @@
         h1, h2 {
             color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px;
         }
-        .slot-selector-container { margin-bottom: 20px; }
-        .slot-selector-container label { font-weight: bold; font-size: 1.1em; color: #333; display: block; margin-bottom: 8px; }
-        #slotSelector {
-            width: 100%; padding: 10px; font-size: 1em;
-            border: 1px solid #ddd; border-radius: 4px;
+        .signup-section {
+            background-color: #e9f5ff; padding: 15px; border-radius: 8px; margin-bottom: 25px;
+            border: 1px solid #b3d7ff;
         }
-        .form-container { margin-top: 20px; display: flex; gap: 10px; }
+        .form-container { display: flex; gap: 10px; margin-bottom: 15px; }
         #nameInput {
             flex-grow: 1; padding: 10px; border: 1px solid #ddd;
             border-radius: 4px; font-size: 1em;
         }
         #submitBtn {
             padding: 10px 20px; border: none; background-color: #007bff; color: white;
-            border-radius: 4px; cursor: pointer; font-size: 1em; transition: background-color 0.3s;
+            border-radius: 4px; cursor: pointer; font-size: 1em; white-space: nowrap;
         }
         #submitBtn:hover { background-color: #0056b3; }
-        #participant-list { list-style-type: decimal; padding-left: 20px; min-height: 50px; }
-        #participant-list li {
-            background-color: #e9f5ff; margin-bottom: 8px; padding: 10px;
-            border-radius: 4px; border-left: 5px solid #007bff;
+        .slots-container label {
+            font-weight: bold; display: block; margin-bottom: 10px;
         }
-        .clear-btn-container { text-align: right; margin-top: 20px; }
-        #clearBtn {
-            padding: 8px 15px; border: none; background-color: #dc3545; color: white;
-            border-radius: 4px; cursor: pointer; font-size: 0.9em;
+        .slot-checkbox { display: flex; align-items: center; margin-bottom: 8px; }
+        .slot-checkbox input { width: 18px; height: 18px; margin-right: 10px; }
+        .slot-checkbox span { font-size: 1.1em; }
+        
+        .slot-accordion .slot-header {
+            background-color: #f0f0f0; padding: 12px; margin-top: 10px;
+            border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between;
+            align-items: center; transition: background-color 0.2s;
         }
-        #clearBtn:hover { background-color: #c82333; }
+        .slot-accordion .slot-header:hover { background-color: #e0e0e0; }
+        .slot-accordion .slot-header h3 { margin: 0; font-size: 1.1em; }
+        .slot-accordion .participant-count { font-weight: normal; color: #555; }
+        .slot-accordion .participant-list {
+            padding-left: 20px; border-left: 3px solid #007bff;
+            margin-top: 0; margin-bottom: 10px;
+            max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out;
+        }
+        .slot-accordion.active .participant-list {
+            max-height: 500px; /* Or a larger value if lists are long */
+            padding-top: 10px;
+        }
+        .slot-accordion .participant-list li {
+             margin-bottom: 8px; padding: 5px;
+        }
+        .arrow {
+            border: solid black; border-width: 0 2px 2px 0; display: inline-block;
+            padding: 3px; transform: rotate(45deg); transition: transform 0.3s;
+        }
+        .slot-accordion.active .arrow { transform: rotate(-135deg); }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>你来打球吗</h1>
+        <h1>羽毛球/篮球/足球局 - 实时报名</h1>
 
-        <div class="slot-selector-container">
-            <label for="slotSelector">1. 请选择要报名的场次：</label>
-            <select id="slotSelector">
-                <option value="sat-23-aug">8月21日周4，晚7-9</option>
-                <option value="sun-24-aug">8月24日周7，晚4-6</option>
-                <option value="tue-26-aug">8月26日周2，晚7-9</option>
-                <option value="tue-26-aug">8月28日周4，晚7-9</option>
-                </select>
+        <div class="signup-section">
+            <h2>1. 填写名字并勾选场次</h2>
+            <div class="form-container">
+                <input type="text" id="nameInput" placeholder="在此输入你的名字">
+                <button id="submitBtn">报名选中场次</button>
+            </div>
+            <div id="slots-checkbox-container">
+                <label>请选择要参加的场次：</label>
+                </div>
         </div>
 
-        <h2>2. 填写名字报名</h2>
-        <div class="form-container">
-            <input type="text" id="nameInput" placeholder="输入你的名字">
-            <button id="submitBtn">加入该场次</button>
-        </div>
-
-        <div>
-            <h2>已报名列表 (<span id="count">0</span>人)</h2>
-            <ul id="participant-list"></ul>
-        </div>
-
-        <div class="clear-btn-container">
-            <button id="clearBtn">清空当前场次列表</button>
-        </div>
+        <h2>2. 各场次报名情况</h2>
+        <div id="slots-accordion-container">
+            </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBczhQyTGzdUceUiec9zLEpK5TpA4rApSw",
-            authDomain: "ni-lai-da-qiu-ma.firebaseapp.com",
-            databaseURL: "https://ni-lai-da-qiu-ma-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "ni-lai-da-qiu-ma",
-            storageBucket: "ni-lai-da-qiu-ma.firebasestorage.app",
-            messagingSenderId: "526261240346",
-            appId: "1:526261240346:web:20f74aeb74f7c12d3047a3",
-            measurementId: "G-2F4GJDW2DP"
-        };
+        // =================================================================================
+        // ==  在这里管理你的场次 (这是你唯一需要修改的地方！)  ==
+        // =================================================================================
+        const availableSlots = [
+            { id: 'sat-23-aug', label: '8月21日周4，晚7-9' },
+            { id: 'sun-24-aug', label: '8月24日周7，晚4-6' },
+            { id: 'tue-26-aug', label: '8月26日周2，晚7-9' },
+            { id: 'tue-28-aug', label: '8月28日周4，晚7-9' },
+            // 像这样复制上一行来添加新场次, id 必须唯一
+            // { id: 'new-game-id', label: '显示给用户的文字' }
+        ];
+        // =================================================================================
 
+        const firebaseConfig = { /* 你的Firebase配置信息保持不变 */ };
+        // ... (省略了你的firebaseConfig，请确保它在这里)
+        
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        const slotSelector = document.getElementById('slotSelector');
         const nameInput = document.getElementById('nameInput');
         const submitBtn = document.getElementById('submitBtn');
-        const participantList = document.getElementById('participant-list');
-        const participantCount = document.getElementById('count');
-        const clearBtn = document.getElementById('clearBtn');
+        const slotsCheckboxContainer = document.getElementById('slots-checkbox-container');
+        const slotsAccordionContainer = document.getElementById('slots-accordion-container');
 
-        let currentSlotId = null;
-        let participantsRef = null;
+        let participantsBySlot = {}; // 用来存储每个场次的报名名单
+
+        // 动态生成页面内容
+        availableSlots.forEach(slot => {
+            // 1. 创建复选框
+            const checkboxDiv = document.createElement('div');
+            checkboxDiv.className = 'slot-checkbox';
+            checkboxDiv.innerHTML = `
+                <input type="checkbox" id="check-${slot.id}" data-slot-id="${slot.id}">
+                <label for="check-${slot.id}"><span>${slot.label}</span></label>
+            `;
+            slotsCheckboxContainer.appendChild(checkboxDiv);
+
+            // 2. 创建可折叠的列表区域
+            const accordionDiv = document.createElement('div');
+            accordionDiv.className = 'slot-accordion';
+            accordionDiv.id = `accordion-${slot.id}`;
+            accordionDiv.innerHTML = `
+                <div class="slot-header">
+                    <h3>${slot.label} (<span class="participant-count">0</span>人)</h3>
+                    <i class="arrow"></i>
+                </div>
+                <ul class="participant-list"></ul>
+            `;
+            slotsAccordionContainer.appendChild(accordionDiv);
+
+            // 3. 为每个场次附加Firebase监听器
+            listenToSlot(slot.id);
+        });
+        
+        // 折叠/展开逻辑
+        slotsAccordionContainer.addEventListener('click', function(event) {
+            const header = event.target.closest('.slot-header');
+            if (header) {
+                header.parentElement.classList.toggle('active');
+            }
+        });
+
 
         function listenToSlot(slotId) {
-            currentSlotId = slotId;
-            // 如果之前已经监听了某个场次，先取消监听
-            if (participantsRef) {
-                participantsRef.off();
-            }
-            
-            participantsRef = database.ref('games/' + slotId);
-            
-            // 实时监听新场次的数据变化
+            const participantsRef = database.ref('games/' + slotId);
             participantsRef.on('value', (snapshot) => {
-                const participants = snapshot.val();
-                participantList.innerHTML = '';
+                const participantsData = snapshot.val();
+                const accordion = document.getElementById(`accordion-${slotId}`);
+                const listElement = accordion.querySelector('.participant-list');
+                const countElement = accordion.querySelector('.participant-count');
+                
+                listElement.innerHTML = '';
+                participantsBySlot[slotId] = []; // 重置当前场次的本地名单
                 let count = 0;
-                if (participants) {
-                    for (const key in participants) {
+
+                if (participantsData) {
+                    for (const key in participantsData) {
+                        const name = participantsData[key].name;
+                        participantsBySlot[slotId].push(name.toLowerCase().trim());
                         const li = document.createElement('li');
-                        li.textContent = participants[key].name;
-                        participantList.appendChild(li);
+                        li.textContent = name;
+                        listElement.appendChild(li);
                         count++;
                     }
                 }
-                participantCount.textContent = count;
+                countElement.textContent = count;
             });
         }
 
-        function addParticipant() {
-            if (!currentSlotId) return; // 如果没有选中场次，则不执行
+        function signUp() {
             const name = nameInput.value.trim();
-            if (name) {
-                participantsRef.push({ name: name });
-                nameInput.value = '';
+            if (!name) {
+                alert("请输入你的名字！");
+                return;
             }
+
+            const selectedCheckboxes = document.querySelectorAll('#slots-checkbox-container input[type="checkbox"]:checked');
+            
+            if (selectedCheckboxes.length === 0) {
+                alert("请至少选择一个要报名的场次！");
+                return;
+            }
+
+            let successCount = 0;
+            let alreadyJoined = [];
+
+            selectedCheckboxes.forEach(checkbox => {
+                const slotId = checkbox.dataset.slotId;
+                const currentParticipants = participantsBySlot[slotId] || [];
+
+                if (currentParticipants.includes(name.toLowerCase())) {
+                    alreadyJoined.push(availableSlots.find(s => s.id === slotId).label);
+                } else {
+                    database.ref('games/' + slotId).push({ name: name });
+                    successCount++;
+                }
+            });
+
+            // 生成反馈信息
+            let feedbackMessage = "";
+            if (successCount > 0) {
+                feedbackMessage += `成功报名 ${successCount} 个场次！\n`;
+            }
+            if (alreadyJoined.length > 0) {
+                feedbackMessage += `你已报过名，无需重复报名以下场次：\n- ${alreadyJoined.join('\n- ')}`;
+            }
+            alert(feedbackMessage);
+            
+            nameInput.value = '';
+            selectedCheckboxes.forEach(cb => cb.checked = false); // 清空选择
         }
-        
-        submitBtn.addEventListener('click', addParticipant);
-        nameInput.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') addParticipant();
-        });
-        
-        clearBtn.addEventListener('click', () => {
-            if (!currentSlotId) return;
-            const selectedText = slotSelector.options[slotSelector.selectedIndex].text;
-            if (confirm(`确定要清空【${selectedText}】的所有报名记录吗？`)) {
-                participantsRef.set(null);
-            }
-        });
 
-        // 当下拉菜单选项变化时，切换监听的场次
-        slotSelector.addEventListener('change', (event) => {
-            listenToSlot(event.target.value);
-        });
-
-        // 页面首次加载时，自动监听下拉菜单的第一个选项
-        listenToSlot(slotSelector.value);
+        submitBtn.addEventListener('click', signUp);
 
     </script>
 </body>
 </html>
-
