@@ -29,24 +29,23 @@
         .arrow { border: solid black; border-width: 0 2px 2px 0; display: inline-block; padding: 3px; transform: rotate(45deg); transition: transform 0.3s; }
         .slot-accordion.active .arrow { transform: rotate(-135deg); }
         #no-slots-message { text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 4px; color: #6c757d; }
-        /* --- Admin Panel Styles --- */
         .admin-toggle { text-align: center; margin-top: 20px; }
         .admin-toggle button { background: none; border: none; color: #6c757d; cursor: pointer; text-decoration: underline; }
         #admin-panel { display: none; background-color: #fffbe6; border: 1px solid #ffe58f; padding: 15px; border-radius: 8px; margin-top: 15px; }
         #admin-panel h3 { margin-top: 0; }
         .admin-form-group { margin-bottom: 10px; }
         .admin-form-group label { display: block; margin-bottom: 5px; }
-        .admin-form-group input { width: calc(100% - 20px); padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .admin-form-group input { width: calc(100% - 22px); padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 1em; }
         .admin-form-group button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>你来打球吗</h1>
+        <h1>羽毛球/篮球/足球局 - 实时报名</h1>
         <div class="signup-section">
-            <h2>1. 你来选</h2>
+            <h2>1. 填写名字并勾选场次</h2>
             <div class="form-container">
-                <input type="text" id="nameInput" placeholder="你叫啥">
+                <input type="text" id="nameInput" placeholder="在此输入你的名字">
                 <button id="submitBtn">报名选中场次</button>
             </div>
             <div id="slots-checkbox-container">
@@ -54,7 +53,7 @@
                 <!-- Checkboxes will be dynamically inserted here -->
             </div>
         </div>
-        <h2>2. 报名情况</h2>
+        <h2>2. 各场次报名情况</h2>
         <div id="slots-accordion-container">
             <!-- Accordion lists will be dynamically inserted here -->
         </div>
@@ -64,12 +63,16 @@
         <div id="admin-panel">
             <h3>管理员后台</h3>
             <div class="admin-form-group">
-                <label for="new-slot-label">场次名称 (例如: 8月21日周4，晚7-9)</label>
-                <input type="text" id="new-slot-label" placeholder="场次显示的名称">
+                <label for="new-slot-label">活动名称 (例如: 羽毛球-场地1)</label>
+                <input type="text" id="new-slot-label" placeholder="活动的基础名称">
             </div>
             <div class="admin-form-group">
-                <label for="new-slot-date">场次结束日期 (过期后会自动隐藏)</label>
-                <input type="date" id="new-slot-date">
+                <label for="new-slot-start">开始时间 (过时会自动隐藏)</label>
+                <input type="datetime-local" id="new-slot-start">
+            </div>
+             <div class="admin-form-group">
+                <label for="new-slot-end">结束时间</label>
+                <input type="datetime-local" id="new-slot-end">
             </div>
             <div class="admin-form-group">
                 <button id="add-slot-btn">添加新场次</button>
@@ -100,7 +103,7 @@
         
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        const slotsDefRef = database.ref('_event_definitions'); // New location for storing slot definitions
+        const slotsDefRef = database.ref('_event_definitions');
 
         const nameInput = document.getElementById('nameInput');
         const submitBtn = document.getElementById('submitBtn');
@@ -113,45 +116,59 @@
         let participantsBySlot = {};
         let availableSlots = [];
 
-        // Listen for changes in slot definitions from Firebase
+        function formatDateTimeRange(startISO, endISO) {
+            const startDate = new Date(startISO);
+            const endDate = new Date(endISO);
+            const optionsDate = { month: 'numeric', day: 'numeric' };
+            const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
+
+            const startDateStr = startDate.toLocaleDateString('zh-CN', optionsDate);
+            const startTimeStr = startDate.toLocaleTimeString('zh-CN', optionsTime);
+            const endDateStr = endDate.toLocaleDateString('zh-CN', optionsDate);
+            const endTimeStr = endDate.toLocaleTimeString('zh-CN', optionsTime);
+
+            if (startDateStr === endDateStr) {
+                return `${startDateStr} ${startTimeStr} - ${endTimeStr}`;
+            } else {
+                return `${startDateStr} ${startTimeStr} - ${endDateStr} ${endTimeStr}`;
+            }
+        }
+
         slotsDefRef.on('value', (snapshot) => {
             const allDefinedSlotsData = snapshot.val();
-            const allDefinedSlots = [];
+            let allDefinedSlots = [];
             if (allDefinedSlotsData) {
-                for (const key in allDefinedSlotsData) {
-                    allDefinedSlots.push({
-                        id: key, // The unique key from Firebase is now the ID
-                        label: allDefinedSlotsData[key].label,
-                        endDate: allDefinedSlotsData[key].endDate
-                    });
-                }
+                allDefinedSlots = Object.keys(allDefinedSlotsData).map(key => ({
+                    id: key,
+                    ...allDefinedSlotsData[key]
+                }));
             }
 
-            // Filter out past slots
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            availableSlots = allDefinedSlots.filter(slot => new Date(slot.endDate) >= today);
+            const now = new Date();
+            availableSlots = allDefinedSlots
+                .filter(slot => new Date(slot.startTime) > now)
+                .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
             
-            // Re-render the entire page based on the new slot definitions
             renderPage();
         });
 
         function renderPage() {
-            // Clear existing content
             slotsCheckboxContainer.innerHTML = '<label>请选择要参加的场次：</label>';
             slotsAccordionContainer.innerHTML = '';
 
             if (availableSlots.length > 0) {
                 availableSlots.forEach(slot => {
+                    const displayLabel = `${slot.label} (${formatDateTimeRange(slot.startTime, slot.endTime)})`;
+                    
                     const checkboxDiv = document.createElement('div');
                     checkboxDiv.className = 'slot-checkbox';
-                    checkboxDiv.innerHTML = `<input type="checkbox" id="check-${slot.id}" data-slot-id="${slot.id}"><label for="check-${slot.id}"><span>${slot.label}</span></label>`;
+                    checkboxDiv.innerHTML = `<input type="checkbox" id="check-${slot.id}" data-slot-id="${slot.id}"><label for="check-${slot.id}"><span>${displayLabel}</span></label>`;
                     slotsCheckboxContainer.appendChild(checkboxDiv);
                     
                     const accordionDiv = document.createElement('div');
                     accordionDiv.className = 'slot-accordion';
                     accordionDiv.id = `accordion-${slot.id}`;
-                    accordionDiv.innerHTML = `<div class="slot-header"><h3>${slot.label} (<span class="participant-count">0</span>人)</h3><i class="arrow"></i></div><ul class="participant-list"></ul>`;
+                    accordionDiv.innerHTML = `<div class="slot-header"><h3>${displayLabel} (<span class="participant-count">0</span>人)</h3><i class="arrow"></i></div><ul class="participant-list"></ul>`;
                     slotsAccordionContainer.appendChild(accordionDiv);
                     
                     listenToSlotParticipants(slot.id);
@@ -168,7 +185,7 @@
             participantsRef.on('value', (snapshot) => {
                 const participantsData = snapshot.val();
                 const accordion = document.getElementById(`accordion-${slotId}`);
-                if (!accordion) return; // If slot was removed, accordion might not exist
+                if (!accordion) return;
                 const listElement = accordion.querySelector('.participant-list');
                 const countElement = accordion.querySelector('.participant-count');
                 listElement.innerHTML = '';
@@ -189,7 +206,6 @@
             });
         }
 
-        // --- Admin Panel Logic ---
         adminLoginBtn.addEventListener('click', () => {
             const pass = prompt("请输入管理员密码:");
             if (pass === ADMIN_PASSWORD) {
@@ -202,26 +218,26 @@
 
         addSlotBtn.addEventListener('click', () => {
             const label = document.getElementById('new-slot-label').value.trim();
-            const endDate = document.getElementById('new-slot-date').value;
+            const startTime = document.getElementById('new-slot-start').value;
+            const endTime = document.getElementById('new-slot-end').value;
 
-            if (!label || !endDate) {
-                alert("场次名称和结束日期都不能为空！");
+            if (!label || !startTime || !endTime) {
+                alert("所有字段都不能为空！");
+                return;
+            }
+            if (new Date(startTime) >= new Date(endTime)) {
+                alert("结束时间必须晚于开始时间！");
                 return;
             }
 
-            // Push new slot definition to Firebase. Firebase will generate a unique key.
-            slotsDefRef.push({
-                label: label,
-                endDate: endDate
-            });
+            slotsDefRef.push({ label, startTime, endTime });
 
-            // Clear input fields
             document.getElementById('new-slot-label').value = '';
-            document.getElementById('new-slot-date').value = '';
-            alert("新场次添加成功！页面将自动刷新。");
+            document.getElementById('new-slot-start').value = '';
+            document.getElementById('new-slot-end').value = '';
+            alert("新场次添加成功！页面将自动更新。");
         });
 
-        // --- Event Listeners for signup, delete, and accordion ---
         slotsAccordionContainer.addEventListener('click', function(event) {
             if (event.target.classList.contains('delete-btn')) {
                 const li = event.target.closest('li');
@@ -273,5 +289,3 @@
     </script>
 </body>
 </html>
-
-
