@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打球报名</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 15px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #0056b3;
+            border-bottom: 2px solid #0056b3;
+            padding-bottom: 10px;
+        }
+        .event-details p {
+            font-size: 1.1em;
+            margin: 10px 0;
+        }
+        .event-details strong {
+            color: #333;
+        }
+        .form-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        #nameInput {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        #submitBtn {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        #submitBtn:hover {
+            background-color: #0056b3;
+        }
+        #participant-list {
+            list-style-type: decimal;
+            padding-left: 20px;
+        }
+        #participant-list li {
+            background-color: #e9f5ff;
+            margin-bottom: 8px;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 5px solid #007bff;
+        }
+        .clear-btn-container {
+            text-align: right;
+            margin-top: 20px;
+        }
+        #clearBtn {
+            padding: 8px 15px;
+            border: none;
+            background-color: #dc3545;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        #clearBtn:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>羽毛球/篮球/足球局 - 报名接龙</h1>
+
+        <div class="event-details">
+            <h2>活动详情</h2>
+            <p><strong>时间：</strong> <span contenteditable="true">周六晚上 7:00 - 9:00</span></p>
+            <p><strong>地点：</strong> <span contenteditable="true">城南体育中心</span></p>
+            <p><strong>说明：</strong> <span contenteditable="true">新手友好，欢迎大家参加！</span></p>
+        </div>
+
+        <div class="form-container">
+            <input type="text" id="nameInput" placeholder="输入你的名字">
+            <button id="submitBtn">我会参加</button>
+        </div>
+
+        <div>
+            <h2>已报名列表 (<span id="count">0</span>人)</h2>
+            <ul id="participant-list">
+                </ul>
+        </div>
+
+        <div class="clear-btn-container">
+            <button id="clearBtn">清空列表 (为下次活动准备)</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const nameInput = document.getElementById('nameInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const participantList = document.getElementById('participant-list');
+            const participantCount = document.getElementById('count');
+            const clearBtn = document.getElementById('clearBtn');
+
+            // 定义一个唯一的key用于本地存储，可以根据活动更改
+            const storageKey = 'participants_2025_game1';
+
+            // 从本地存储加载参与者
+            function loadParticipants() {
+                const participants = JSON.parse(localStorage.getItem(storageKey)) || [];
+                participantList.innerHTML = ''; // 先清空当前列表
+                participants.forEach(name => {
+                    addParticipantToList(name);
+                });
+                updateCount();
+            }
+
+            // 将参与者名字添加到列表中
+            function addParticipantToList(name) {
+                const li = document.createElement('li');
+                li.textContent = name;
+                participantList.appendChild(li);
+            }
+
+            // 更新参与人数
+            function updateCount() {
+                participantCount.textContent = participantList.children.length;
+            }
+
+            // 保存参与者列表到本地存储
+            function saveParticipants() {
+                const participants = [];
+                for (let i = 0; i < participantList.children.length; i++) {
+                    participants.push(participantList.children[i].textContent);
+                }
+                localStorage.setItem(storageKey, JSON.stringify(participants));
+            }
+
+            // 处理提交事件
+            submitBtn.addEventListener('click', function() {
+                const name = nameInput.value.trim();
+                if (name === "") {
+                    alert("请输入你的名字！");
+                    return;
+                }
+                
+                // 检查是否已报名
+                const currentParticipants = Array.from(participantList.children).map(li => li.textContent);
+                if (currentParticipants.includes(name)) {
+                    alert("你已经报过名啦！");
+                    return;
+                }
+
+                addParticipantToList(name);
+                saveParticipants();
+                updateCount();
+                nameInput.value = ''; // 清空输入框
+            });
+            
+            // 允许按回车键提交
+            nameInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    submitBtn.click();
+                }
+            });
+
+            // 清空列表事件
+            clearBtn.addEventListener('click', function() {
+                if (confirm('确定要清空所有报名记录吗？这个操作无法撤销。')) {
+                    localStorage.removeItem(storageKey);
+                    participantList.innerHTML = '';
+                    updateCount();
+                }
+            });
+
+            // 页面加载时执行
+            loadParticipants();
+        });
+    </script>
+
+</body>
+</html>
