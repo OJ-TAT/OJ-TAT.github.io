@@ -55,9 +55,28 @@
             max-height: 500px; /* Or a larger value if lists are long */
             padding-top: 10px;
         }
+        /* --- Style for list items and delete button --- */
         .slot-accordion .participant-list li {
-             margin-bottom: 8px; padding: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 5px;
         }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            font-size: 1.4em;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0 5px;
+            line-height: 1;
+        }
+        .delete-btn:hover {
+            color: #a71d2a;
+        }
+        /* --- End of new styles --- */
         .arrow {
             border: solid black; border-width: 0 2px 2px 0; display: inline-block;
             padding: 3px; transform: rotate(45deg); transition: transform 0.3s;
@@ -128,34 +147,37 @@
 
         // Dynamically generate page content
         availableSlots.forEach(slot => {
-            // 1. Create checkboxes
+            // ... (Creation of checkboxes and accordion structure remains the same)
             const checkboxDiv = document.createElement('div');
             checkboxDiv.className = 'slot-checkbox';
-            checkboxDiv.innerHTML = `
-                <input type="checkbox" id="check-${slot.id}" data-slot-id="${slot.id}">
-                <label for="check-${slot.id}"><span>${slot.label}</span></label>
-            `;
+            checkboxDiv.innerHTML = `<input type="checkbox" id="check-${slot.id}" data-slot-id="${slot.id}"><label for="check-${slot.id}"><span>${slot.label}</span></label>`;
             slotsCheckboxContainer.appendChild(checkboxDiv);
-
-            // 2. Create collapsible list areas
             const accordionDiv = document.createElement('div');
             accordionDiv.className = 'slot-accordion';
             accordionDiv.id = `accordion-${slot.id}`;
-            accordionDiv.innerHTML = `
-                <div class="slot-header">
-                    <h3>${slot.label} (<span class="participant-count">0</span>人)</h3>
-                    <i class="arrow"></i>
-                </div>
-                <ul class="participant-list"></ul>
-            `;
+            accordionDiv.innerHTML = `<div class="slot-header"><h3>${slot.label} (<span class="participant-count">0</span>人)</h3><i class="arrow"></i></div><ul class="participant-list"></ul>`;
             slotsAccordionContainer.appendChild(accordionDiv);
-
-            // 3. Attach Firebase listener for each slot
             listenToSlot(slot.id);
         });
         
-        // Logic for accordion collapse/expand
+        // --- UPDATED Event Listener for both accordion and delete button ---
         slotsAccordionContainer.addEventListener('click', function(event) {
+            // Handle delete button click
+            if (event.target.classList.contains('delete-btn')) {
+                const li = event.target.closest('li');
+                const key = li.dataset.key; // The unique key from Firebase
+                const accordion = li.closest('.slot-accordion');
+                const slotId = accordion.id.replace('accordion-', '');
+                const name = li.querySelector('span').textContent;
+
+                if (confirm(`确定要从【${availableSlots.find(s => s.id === slotId).label}】中删除“${name}”吗？`)) {
+                    // Remove the specific participant from Firebase
+                    database.ref('games/' + slotId + '/' + key).remove();
+                }
+                return; // Stop further actions
+            }
+
+            // Handle accordion collapse/expand
             const header = event.target.closest('.slot-header');
             if (header) {
                 header.parentElement.classList.toggle('active');
@@ -172,15 +194,18 @@
                 const countElement = accordion.querySelector('.participant-count');
                 
                 listElement.innerHTML = '';
-                participantsBySlot[slotId] = []; // Reset local list for the current slot
+                participantsBySlot[slotId] = [];
                 let count = 0;
 
                 if (participantsData) {
                     for (const key in participantsData) {
                         const name = participantsData[key].name;
                         participantsBySlot[slotId].push(name.toLowerCase().trim());
+                        
+                        // --- UPDATED: Create list item with delete button ---
                         const li = document.createElement('li');
-                        li.textContent = name;
+                        li.dataset.key = key; // Store the unique Firebase key on the element
+                        li.innerHTML = `<span>${name}</span><button class="delete-btn" title="删除">&times;</button>`;
                         listElement.appendChild(li);
                         count++;
                     }
@@ -190,26 +215,16 @@
         }
 
         function signUp() {
+            // ... (The signUp function remains exactly the same)
             const name = nameInput.value.trim();
-            if (!name) {
-                alert("请输入你的名字！");
-                return;
-            }
-
+            if (!name) { alert("请输入你的名字！"); return; }
             const selectedCheckboxes = document.querySelectorAll('#slots-checkbox-container input[type="checkbox"]:checked');
-            
-            if (selectedCheckboxes.length === 0) {
-                alert("请至少选择一个要报名的场次！");
-                return;
-            }
-
+            if (selectedCheckboxes.length === 0) { alert("请至少选择一个要报名的场次！"); return; }
             let successCount = 0;
             let alreadyJoined = [];
-
             selectedCheckboxes.forEach(checkbox => {
                 const slotId = checkbox.dataset.slotId;
                 const currentParticipants = participantsBySlot[slotId] || [];
-
                 if (currentParticipants.includes(name.toLowerCase())) {
                     alreadyJoined.push(availableSlots.find(s => s.id === slotId).label);
                 } else {
@@ -217,19 +232,12 @@
                     successCount++;
                 }
             });
-
-            // Generate feedback message
             let feedbackMessage = "";
-            if (successCount > 0) {
-                feedbackMessage += `成功报名 ${successCount} 个场次！\n`;
-            }
-            if (alreadyJoined.length > 0) {
-                feedbackMessage += `你已报过名，无需重复报名以下场次：\n- ${alreadyJoined.join('\n- ')}`;
-            }
+            if (successCount > 0) { feedbackMessage += `成功报名 ${successCount} 个场次！\n`; }
+            if (alreadyJoined.length > 0) { feedbackMessage += `你已报过名，无需重复报名以下场次：\n- ${alreadyJoined.join('\n- ')}`; }
             alert(feedbackMessage);
-            
             nameInput.value = '';
-            selectedCheckboxes.forEach(cb => cb.checked = false); // Clear selections
+            selectedCheckboxes.forEach(cb => cb.checked = false);
         }
 
         submitBtn.addEventListener('click', signUp);
