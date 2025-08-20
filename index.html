@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>打球报名</title>
+    <title>实时报名 - 打球接龙</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -25,18 +25,8 @@
             border-bottom: 2px solid #0056b3;
             padding-bottom: 10px;
         }
-        .event-details p {
-            font-size: 1.1em;
-            margin: 10px 0;
-        }
-        .event-details strong {
-            color: #333;
-        }
-        .form-container {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-        }
+        .event-details p { font-size: 1.1em; margin: 10px 0; }
+        .form-container { margin-top: 20px; display: flex; gap: 10px; }
         #nameInput {
             flex-grow: 1;
             padding: 10px;
@@ -45,61 +35,35 @@
             font-size: 1em;
         }
         #submitBtn {
-            padding: 10px 20px;
-            border: none;
-            background-color: #007bff;
-            color: white;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s;
+            padding: 10px 20px; border: none; background-color: #007bff; color: white;
+            border-radius: 4px; cursor: pointer; font-size: 1em; transition: background-color 0.3s;
         }
-        #submitBtn:hover {
-            background-color: #0056b3;
-        }
-        #participant-list {
-            list-style-type: decimal;
-            padding-left: 20px;
-        }
+        #submitBtn:hover { background-color: #0056b3; }
+        #participant-list { list-style-type: decimal; padding-left: 20px; }
         #participant-list li {
-            background-color: #e9f5ff;
-            margin-bottom: 8px;
-            padding: 10px;
-            border-radius: 4px;
-            border-left: 5px solid #007bff;
+            background-color: #e9f5ff; margin-bottom: 8px; padding: 10px;
+            border-radius: 4px; border-left: 5px solid #007bff;
         }
-        .clear-btn-container {
-            text-align: right;
-            margin-top: 20px;
-        }
+        .clear-btn-container { text-align: right; margin-top: 20px; }
         #clearBtn {
-            padding: 8px 15px;
-            border: none;
-            background-color: #dc3545;
-            color: white;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
+            padding: 8px 15px; border: none; background-color: #dc3545; color: white;
+            border-radius: 4px; cursor: pointer; font-size: 0.9em;
         }
-        #clearBtn:hover {
-            background-color: #c82333;
-        }
+        #clearBtn:hover { background-color: #c82333; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>羽毛球/篮球/足球局 - 报名接龙</h1>
-
+        <h1>羽毛球/篮球/足球局 - 实时报名</h1>
         <div class="event-details">
             <h2>活动详情</h2>
-            <p><strong>时间：</strong> <span contenteditable="true">周六晚上 7:00 - 9:00</span></p>
-            <p><strong>地点：</strong> <span contenteditable="true">城南体育中心</span></p>
-            <p><strong>说明：</strong> <span contenteditable="true">新手友好，欢迎大家参加！</span></p>
+            <p><strong>时间：</strong> <span>周六晚上 7:00 - 9:00</span></p>
+            <p><strong>地点：</strong> <span>城南体育中心</span></p>
         </div>
 
         <div class="form-container">
-            <input type="text" id="nameInput" placeholder="输入你的名字">
+            <input type="text" id="nameInput" placeholder="输入你的名字后回车或点击按钮">
             <button id="submitBtn">我会参加</button>
         </div>
 
@@ -114,89 +78,83 @@
         </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const nameInput = document.getElementById('nameInput');
-            const submitBtn = document.getElementById('submitBtn');
-            const participantList = document.getElementById('participant-list');
-            const participantCount = document.getElementById('count');
-            const clearBtn = document.getElementById('clearBtn');
+        // =======================================================================
+        // ==     你的专属 Firebase 配置信息已填入此处     ==
+        // =======================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBczhQyTGzdUceUiec9zLEpK5TpA4rApSw",
+            authDomain: "ni-lai-da-qiu-ma.firebaseapp.com",
+            databaseURL: "https://ni-lai-da-qiu-ma-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "ni-lai-da-qiu-ma",
+            storageBucket: "ni-lai-da-qiu-ma.firebasestorage.app",
+            messagingSenderId: "526261240346",
+            appId: "1:526261240346:web:20f74aeb74f7c12d3047a3",
+            measurementId: "G-2F4GJDW2DP"
+        };
+        // =======================================================================
 
-            // 定义一个唯一的key用于本地存储，可以根据活动更改
-            const storageKey = 'participants_2025_game1';
 
-            // 从本地存储加载参与者
-            function loadParticipants() {
-                const participants = JSON.parse(localStorage.getItem(storageKey)) || [];
-                participantList.innerHTML = ''; // 先清空当前列表
-                participants.forEach(name => {
-                    addParticipantToList(name);
-                });
-                updateCount();
-            }
+        // 初始化 Firebase 应用
+        firebase.initializeApp(firebaseConfig);
 
-            // 将参与者名字添加到列表中
-            function addParticipantToList(name) {
-                const li = document.createElement('li');
-                li.textContent = name;
-                participantList.appendChild(li);
-            }
+        // 获取数据库服务的引用
+        const database = firebase.database();
+        const participantsRef = database.ref('participants');
 
-            // 更新参与人数
-            function updateCount() {
-                participantCount.textContent = participantList.children.length;
-            }
-
-            // 保存参与者列表到本地存储
-            function saveParticipants() {
-                const participants = [];
-                for (let i = 0; i < participantList.children.length; i++) {
-                    participants.push(participantList.children[i].textContent);
-                }
-                localStorage.setItem(storageKey, JSON.stringify(participants));
-            }
-
-            // 处理提交事件
-            submitBtn.addEventListener('click', function() {
-                const name = nameInput.value.trim();
-                if (name === "") {
-                    alert("请输入你的名字！");
-                    return;
-                }
-                
-                // 检查是否已报名
-                const currentParticipants = Array.from(participantList.children).map(li => li.textContent);
-                if (currentParticipants.includes(name)) {
-                    alert("你已经报过名啦！");
-                    return;
-                }
-
-                addParticipantToList(name);
-                saveParticipants();
-                updateCount();
+        // 获取页面元素
+        const nameInput = document.getElementById('nameInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const participantList = document.getElementById('participant-list');
+        const participantCount = document.getElementById('count');
+        const clearBtn = document.getElementById('clearBtn');
+        
+        // 提交名字到数据库
+        function addParticipant() {
+            const name = nameInput.value.trim();
+            if (name) {
+                // 使用 push 在数据库中创建一个唯一的 key，并存入名字
+                participantsRef.push({ name: name });
                 nameInput.value = ''; // 清空输入框
-            });
-            
-            // 允许按回车键提交
-            nameInput.addEventListener('keypress', function(event) {
-                if (event.key === 'Enter') {
-                    submitBtn.click();
-                }
-            });
-
-            // 清空列表事件
-            clearBtn.addEventListener('click', function() {
-                if (confirm('确定要清空所有报名记录吗？这个操作无法撤销。')) {
-                    localStorage.removeItem(storageKey);
-                    participantList.innerHTML = '';
-                    updateCount();
-                }
-            });
-
-            // 页面加载时执行
-            loadParticipants();
+            }
+        }
+        
+        submitBtn.addEventListener('click', addParticipant);
+        nameInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                addParticipant();
+            }
         });
-    </script>
 
+        // 实时监听数据库中参与者的变化
+        participantsRef.on('value', (snapshot) => {
+            const participants = snapshot.val();
+            // 清空当前的网页列表
+            participantList.innerHTML = '';
+            
+            let count = 0;
+            if (participants) {
+                for (const key in participants) {
+                    const li = document.createElement('li');
+                    li.textContent = participants[key].name;
+                    participantList.appendChild(li);
+                    count++;
+                }
+            }
+            // 更新人数
+            participantCount.textContent = count;
+        });
+        
+        // 清空数据库中的所有参与者
+        clearBtn.addEventListener('click', () => {
+            if (confirm('确定要清空所有报名记录吗？这个操作会立即同步给所有人。')) {
+                participantsRef.set(null); // 将 'participants' 节点设置为空
+            }
+        });
+
+    </script>
 </body>
 </html>
