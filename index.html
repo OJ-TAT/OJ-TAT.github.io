@@ -35,7 +35,7 @@
         #admin-panel h3 { margin-top: 0; }
         .admin-form-group { margin-bottom: 10px; }
         .admin-form-group label { display: block; margin-bottom: 5px; }
-        .admin-form-group input { width: calc(100% - 22px); padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 1em; }
+        .admin-form-group input, .admin-form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 1em; box-sizing: border-box; }
         .admin-form-group button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
@@ -61,18 +61,18 @@
             <button id="admin-login-btn">管理员入口</button>
         </div>
         <div id="admin-panel">
-            <h3>管理员后台</h3>
+            <h3>管理员后台 (自动命名)</h3>
             <div class="admin-form-group">
-                <label for="new-slot-label">活动名称 (例如: 羽毛球-场地1)</label>
-                <input type="text" id="new-slot-label" placeholder="活动的基础名称">
+                <label for="new-slot-date">选择日期</label>
+                <input type="date" id="new-slot-date">
             </div>
             <div class="admin-form-group">
-                <label for="new-slot-start">开始时间 (过时会自动隐藏)</label>
-                <input type="datetime-local" id="new-slot-start">
+                <label for="new-slot-time">选择开始时间 (整点/半点)</label>
+                <select id="new-slot-time"></select>
             </div>
              <div class="admin-form-group">
-                <label for="new-slot-end">结束时间</label>
-                <input type="datetime-local" id="new-slot-end">
+                <label for="new-slot-duration">选择总时长</label>
+                <select id="new-slot-duration"></select>
             </div>
             <div class="admin-form-group">
                 <button id="add-slot-btn">添加新场次</button>
@@ -87,7 +87,7 @@
         // =================================================================================
         // ==  在这里设置你的管理员密码 (只需要设置这一次！)  ==
         // =================================================================================
-        const ADMIN_PASSWORD = "zczzcz"; // 强烈建议修改成你自己的密码
+        const ADMIN_PASSWORD = "change_this_password"; // 强烈建议修改成你自己的密码
         // =================================================================================
 
         const firebaseConfig = {
@@ -112,65 +112,65 @@
         const adminLoginBtn = document.getElementById('admin-login-btn');
         const adminPanel = document.getElementById('admin-panel');
         const addSlotBtn = document.getElementById('add-slot-btn');
+        const timeSelect = document.getElementById('new-slot-time');
+        const durationSelect = document.getElementById('new-slot-duration');
 
         let participantsBySlot = {};
         let availableSlots = [];
 
-        function formatDateTimeRange(startISO, endISO) {
-            const startDate = new Date(startISO);
-            const endDate = new Date(endISO);
-            const optionsDate = { month: 'numeric', day: 'numeric' };
-            const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
-
-            const startDateStr = startDate.toLocaleDateString('zh-CN', optionsDate);
-            const startTimeStr = startDate.toLocaleTimeString('zh-CN', optionsTime);
-            const endDateStr = endDate.toLocaleDateString('zh-CN', optionsDate);
-            const endTimeStr = endDate.toLocaleTimeString('zh-CN', optionsTime);
-
-            if (startDateStr === endDateStr) {
-                return `${startDateStr} ${startTimeStr} - ${endTimeStr}`;
-            } else {
-                return `${startDateStr} ${startTimeStr} - ${endDateStr} ${endTimeStr}`;
+        // --- Populate Admin Dropdowns ---
+        function populateAdminControls() {
+            // Populate time select (00:00, 00:30, 01:00...)
+            for (let i = 0; i < 24; i++) {
+                let hour = i.toString().padStart(2, '0');
+                timeSelect.options.add(new Option(`${hour}:00`, `${hour}:00`));
+                timeSelect.options.add(new Option(`${hour}:30`, `${hour}:30`));
             }
+            // Populate duration select
+            const durations = [1, 1.5, 2, 2.5, 3, 3.5, 4];
+            durations.forEach(d => {
+                durationSelect.options.add(new Option(`${d} 小时`, d));
+            });
+        }
+        populateAdminControls();
+
+        function formatDisplayLabel(slot) {
+            const startDate = new Date(slot.startTime);
+            const endDate = new Date(slot.endTime);
+            const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false };
+            const startTimeStr = startDate.toLocaleTimeString('zh-CN', optionsTime);
+            const endTimeStr = endDate.toLocaleTimeString('zh-CN', optionsTime);
+            return `${slot.label} (${startTimeStr} - ${endTimeStr})`;
         }
 
         slotsDefRef.on('value', (snapshot) => {
             const allDefinedSlotsData = snapshot.val();
             let allDefinedSlots = [];
             if (allDefinedSlotsData) {
-                allDefinedSlots = Object.keys(allDefinedSlotsData).map(key => ({
-                    id: key,
-                    ...allDefinedSlotsData[key]
-                }));
+                allDefinedSlots = Object.keys(allDefinedSlotsData).map(key => ({ id: key, ...allDefinedSlotsData[key] }));
             }
-
             const now = new Date();
             availableSlots = allDefinedSlots
                 .filter(slot => new Date(slot.startTime) > now)
                 .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-            
             renderPage();
         });
 
         function renderPage() {
             slotsCheckboxContainer.innerHTML = '<label>请选择要参加的场次：</label>';
             slotsAccordionContainer.innerHTML = '';
-
             if (availableSlots.length > 0) {
                 availableSlots.forEach(slot => {
-                    const displayLabel = `${slot.label} (${formatDateTimeRange(slot.startTime, slot.endTime)})`;
-                    
+                    const displayLabel = formatDisplayLabel(slot);
                     const checkboxDiv = document.createElement('div');
                     checkboxDiv.className = 'slot-checkbox';
                     checkboxDiv.innerHTML = `<input type="checkbox" id="check-${slot.id}" data-slot-id="${slot.id}"><label for="check-${slot.id}"><span>${displayLabel}</span></label>`;
                     slotsCheckboxContainer.appendChild(checkboxDiv);
-                    
                     const accordionDiv = document.createElement('div');
                     accordionDiv.className = 'slot-accordion';
                     accordionDiv.id = `accordion-${slot.id}`;
                     accordionDiv.innerHTML = `<div class="slot-header"><h3>${displayLabel} (<span class="participant-count">0</span>人)</h3><i class="arrow"></i></div><ul class="participant-list"></ul>`;
                     slotsAccordionContainer.appendChild(accordionDiv);
-                    
                     listenToSlotParticipants(slot.id);
                 });
                 document.querySelector('.signup-section .form-container').style.display = 'flex';
@@ -217,24 +217,29 @@
         });
 
         addSlotBtn.addEventListener('click', () => {
-            const label = document.getElementById('new-slot-label').value.trim();
-            const startTime = document.getElementById('new-slot-start').value;
-            const endTime = document.getElementById('new-slot-end').value;
+            const dateValue = document.getElementById('new-slot-date').value;
+            const timeValue = document.getElementById('new-slot-time').value;
+            const durationHours = parseFloat(document.getElementById('new-slot-duration').value);
 
-            if (!label || !startTime || !endTime) {
+            if (!dateValue || !timeValue || !durationHours) {
                 alert("所有字段都不能为空！");
                 return;
             }
-            if (new Date(startTime) >= new Date(endTime)) {
-                alert("结束时间必须晚于开始时间！");
-                return;
-            }
 
-            slotsDefRef.push({ label, startTime, endTime });
+            const startDate = new Date(`${dateValue}T${timeValue}`);
+            const endDate = new Date(startDate.getTime() + durationHours * 60 * 60 * 1000);
+            
+            // Auto-generate label
+            const options = { month: 'numeric', day: 'numeric', weekday: 'short' };
+            const autoLabel = startDate.toLocaleDateString('zh-CN', options);
 
-            document.getElementById('new-slot-label').value = '';
-            document.getElementById('new-slot-start').value = '';
-            document.getElementById('new-slot-end').value = '';
+            slotsDefRef.push({
+                label: autoLabel,
+                startTime: startDate.toISOString(),
+                endTime: endDate.toISOString()
+            });
+
+            document.getElementById('new-slot-date').value = '';
             alert("新场次添加成功！页面将自动更新。");
         });
 
@@ -270,7 +275,7 @@
                 const slot = availableSlots.find(s => s.id === slotId);
                 if (slot) {
                     if (currentParticipants.includes(name.toLowerCase())) {
-                        alreadyJoined.push(slot.label);
+                        alreadyJoined.push(formatDisplayLabel(slot));
                     } else {
                         database.ref('games/' + slotId).push({ name: name });
                         successCount++;
