@@ -77,12 +77,14 @@
             </div>
             <div id="slots-checkbox-container">
                 <label>请选择要参加的场次：</label>
-                </div>
+                <!-- Checkboxes will be dynamically inserted here -->
+            </div>
         </div>
 
         <h2>2. 各场次报名情况</h2>
         <div id="slots-accordion-container">
-            </div>
+            <!-- Accordion lists will be dynamically inserted here -->
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -102,8 +104,17 @@
         ];
         // =================================================================================
 
-        const firebaseConfig = { /* 你的Firebase配置信息保持不变 */ };
-        // ... (省略了你的firebaseConfig，请确保它在这里)
+        // Your specific Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBczhQyTGzdUceUiec9zLEpK5TpA4rApSw",
+            authDomain: "ni-lai-da-qiu-ma.firebaseapp.com",
+            databaseURL: "https://ni-lai-da-qiu-ma-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "ni-lai-da-qiu-ma",
+            storageBucket: "ni-lai-da-qiu-ma.firebasestorage.app",
+            messagingSenderId: "526261240346",
+            appId: "1:526261240346:web:20f74aeb74f7c12d3047a3",
+            measurementId: "G-2F4GJDW2DP"
+        };
         
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
@@ -113,11 +124,11 @@
         const slotsCheckboxContainer = document.getElementById('slots-checkbox-container');
         const slotsAccordionContainer = document.getElementById('slots-accordion-container');
 
-        let participantsBySlot = {}; // 用来存储每个场次的报名名单
+        let participantsBySlot = {}; // Used to store the list of participants for each slot
 
-        // 动态生成页面内容
+        // Dynamically generate page content
         availableSlots.forEach(slot => {
-            // 1. 创建复选框
+            // 1. Create checkboxes
             const checkboxDiv = document.createElement('div');
             checkboxDiv.className = 'slot-checkbox';
             checkboxDiv.innerHTML = `
@@ -126,7 +137,7 @@
             `;
             slotsCheckboxContainer.appendChild(checkboxDiv);
 
-            // 2. 创建可折叠的列表区域
+            // 2. Create collapsible list areas
             const accordionDiv = document.createElement('div');
             accordionDiv.className = 'slot-accordion';
             accordionDiv.id = `accordion-${slot.id}`;
@@ -139,11 +150,11 @@
             `;
             slotsAccordionContainer.appendChild(accordionDiv);
 
-            // 3. 为每个场次附加Firebase监听器
+            // 3. Attach Firebase listener for each slot
             listenToSlot(slot.id);
         });
         
-        // 折叠/展开逻辑
+        // Logic for accordion collapse/expand
         slotsAccordionContainer.addEventListener('click', function(event) {
             const header = event.target.closest('.slot-header');
             if (header) {
@@ -161,7 +172,7 @@
                 const countElement = accordion.querySelector('.participant-count');
                 
                 listElement.innerHTML = '';
-                participantsBySlot[slotId] = []; // 重置当前场次的本地名单
+                participantsBySlot[slotId] = []; // Reset local list for the current slot
                 let count = 0;
 
                 if (participantsData) {
@@ -207,7 +218,7 @@
                 }
             });
 
-            // 生成反馈信息
+            // Generate feedback message
             let feedbackMessage = "";
             if (successCount > 0) {
                 feedbackMessage += `成功报名 ${successCount} 个场次！\n`;
@@ -218,7 +229,7 @@
             alert(feedbackMessage);
             
             nameInput.value = '';
-            selectedCheckboxes.forEach(cb => cb.checked = false); // 清空选择
+            selectedCheckboxes.forEach(cb => cb.checked = false); // Clear selections
         }
 
         submitBtn.addEventListener('click', signUp);
@@ -226,4 +237,3 @@
     </script>
 </body>
 </html>
-
