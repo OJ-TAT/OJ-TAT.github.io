@@ -89,7 +89,7 @@
         // =================================================================================
         // ==  在这里设置你的管理员密码 (只需要设置这一次！)  ==
         // =================================================================================
-        const ADMIN_PASSWORD = "change_this_password"; // 强烈建议修改成你自己的密码
+        const ADMIN_PASSWORD = "zczzcz"; // 强烈建议修改成你自己的密码
         // =================================================================================
 
         const firebaseConfig = {
@@ -155,7 +155,7 @@
         });
 
         function renderPage() {
-            slotsCheckboxContainer.innerHTML = '<label>请选择要参加的场次：</label>';
+            slotsCheckboxContainer.innerHTML = '<label>你要打哪些：</label>';
             slotsAccordionContainer.innerHTML = '';
             if (availableSlots.length > 0) {
                 availableSlots.forEach(slot => {
@@ -309,4 +309,5 @@
     </script>
 </body>
 </html>
+
 
