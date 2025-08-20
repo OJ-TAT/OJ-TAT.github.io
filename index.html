@@ -19,14 +19,14 @@
         .slot-checkbox span { font-size: 1.1em; }
         .slot-accordion .slot-header { background-color: #f0f0f0; padding: 12px; margin-top: 10px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s; }
         .slot-accordion .slot-header:hover { background-color: #e0e0e0; }
-        .slot-accordion .slot-header h3 { margin: 0; font-size: 1.1em; }
-        .slot-accordion .participant-count { font-weight: normal; color: #555; }
+        .slot-accordion .slot-header h3 { margin: 0; font-size: 1.1em; flex-grow: 1; }
+        .slot-accordion .participant-count { font-weight: normal; color: #555; margin-left: 10px; }
         .slot-accordion .participant-list { padding-left: 20px; border-left: 3px solid #007bff; margin-top: 0; margin-bottom: 10px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
         .slot-accordion.active .participant-list { max-height: 500px; padding-top: 10px; }
         .slot-accordion .participant-list li { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 5px; }
         .delete-btn { background: none; border: none; color: #dc3545; font-size: 1.4em; font-weight: bold; cursor: pointer; padding: 0 5px; line-height: 1; }
         .delete-btn:hover { color: #a71d2a; }
-        .arrow { border: solid black; border-width: 0 2px 2px 0; display: inline-block; padding: 3px; transform: rotate(45deg); transition: transform 0.3s; }
+        .arrow { border: solid black; border-width: 0 2px 2px 0; display: inline-block; padding: 3px; transform: rotate(45deg); transition: transform 0.3s; margin-left: 15px; }
         .slot-accordion.active .arrow { transform: rotate(-135deg); }
         #no-slots-message { text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 4px; color: #6c757d; }
         .admin-toggle { text-align: center; margin-top: 20px; }
@@ -37,6 +37,8 @@
         .admin-form-group label { display: block; margin-bottom: 5px; }
         .admin-form-group input, .admin-form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 1em; box-sizing: border-box; }
         .admin-form-group button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .delete-slot-btn { display: none; background: none; border: none; cursor: pointer; font-size: 1.2em; margin-left: 10px; }
+        .admin-mode .delete-slot-btn { display: inline-block; }
     </style>
 </head>
 <body>
@@ -105,6 +107,7 @@
         const database = firebase.database();
         const slotsDefRef = database.ref('_event_definitions');
 
+        const mainContainer = document.querySelector('.container');
         const nameInput = document.getElementById('nameInput');
         const submitBtn = document.getElementById('submitBtn');
         const slotsCheckboxContainer = document.getElementById('slots-checkbox-container');
@@ -118,19 +121,14 @@
         let participantsBySlot = {};
         let availableSlots = [];
 
-        // --- Populate Admin Dropdowns ---
         function populateAdminControls() {
-            // Populate time select (00:00, 00:30, 01:00...)
             for (let i = 0; i < 24; i++) {
                 let hour = i.toString().padStart(2, '0');
                 timeSelect.options.add(new Option(`${hour}:00`, `${hour}:00`));
                 timeSelect.options.add(new Option(`${hour}:30`, `${hour}:30`));
             }
-            // Populate duration select
             const durations = [1, 1.5, 2, 2.5, 3, 3.5, 4];
-            durations.forEach(d => {
-                durationSelect.options.add(new Option(`${d} 小时`, d));
-            });
+            durations.forEach(d => durationSelect.options.add(new Option(`${d} 小时`, d)));
         }
         populateAdminControls();
 
@@ -166,11 +164,20 @@
                     checkboxDiv.className = 'slot-checkbox';
                     checkboxDiv.innerHTML = `<input type="checkbox" id="check-${slot.id}" data-slot-id="${slot.id}"><label for="check-${slot.id}"><span>${displayLabel}</span></label>`;
                     slotsCheckboxContainer.appendChild(checkboxDiv);
+                    
                     const accordionDiv = document.createElement('div');
                     accordionDiv.className = 'slot-accordion';
                     accordionDiv.id = `accordion-${slot.id}`;
-                    accordionDiv.innerHTML = `<div class="slot-header"><h3>${displayLabel} (<span class="participant-count">0</span>人)</h3><i class="arrow"></i></div><ul class="participant-list"></ul>`;
+                    accordionDiv.innerHTML = `
+                        <div class="slot-header">
+                            <h3>${displayLabel}</h3>
+                            <button class="delete-slot-btn" data-slot-id="${slot.id}" title="删除整个场次">🗑️</button>
+                            <span class="participant-count">0</span>人
+                            <i class="arrow"></i>
+                        </div>
+                        <ul class="participant-list"></ul>`;
                     slotsAccordionContainer.appendChild(accordionDiv);
+                    
                     listenToSlotParticipants(slot.id);
                 });
                 document.querySelector('.signup-section .form-container').style.display = 'flex';
@@ -209,6 +216,7 @@
         adminLoginBtn.addEventListener('click', () => {
             const pass = prompt("请输入管理员密码:");
             if (pass === ADMIN_PASSWORD) {
+                mainContainer.classList.add('admin-mode');
                 adminPanel.style.display = 'block';
                 alert("欢迎回来，管理员！");
             } else if (pass) {
@@ -222,41 +230,48 @@
             const durationHours = parseFloat(document.getElementById('new-slot-duration').value);
 
             if (!dateValue || !timeValue || !durationHours) {
-                alert("所有字段都不能为空！");
-                return;
+                alert("所有字段都不能为空！"); return;
             }
 
             const startDate = new Date(`${dateValue}T${timeValue}`);
             const endDate = new Date(startDate.getTime() + durationHours * 60 * 60 * 1000);
             
-            // Auto-generate label
             const options = { month: 'numeric', day: 'numeric', weekday: 'short' };
             const autoLabel = startDate.toLocaleDateString('zh-CN', options);
 
-            slotsDefRef.push({
-                label: autoLabel,
-                startTime: startDate.toISOString(),
-                endTime: endDate.toISOString()
-            });
+            slotsDefRef.push({ label: autoLabel, startTime: startDate.toISOString(), endTime: endDate.toISOString() });
 
             document.getElementById('new-slot-date').value = '';
             alert("新场次添加成功！页面将自动更新。");
         });
 
         slotsAccordionContainer.addEventListener('click', function(event) {
-            if (event.target.classList.contains('delete-btn')) {
-                const li = event.target.closest('li');
+            const target = event.target;
+            if (target.classList.contains('delete-btn')) {
+                const li = target.closest('li');
                 const key = li.dataset.key;
                 const accordion = li.closest('.slot-accordion');
                 const slotId = accordion.id.replace('accordion-', '');
                 const name = li.querySelector('span').textContent;
                 const slot = availableSlots.find(s => s.id === slotId);
-                if (slot && confirm(`确定要从【${slot.label}】中删除“${name}”吗？`)) {
+                if (slot && confirm(`确定要从【${formatDisplayLabel(slot)}】中删除“${name}”吗？`)) {
                     database.ref('games/' + slotId + '/' + key).remove();
                 }
                 return;
             }
-            const header = event.target.closest('.slot-header');
+            if (target.classList.contains('delete-slot-btn')) {
+                const slotId = target.dataset.slotId;
+                const slot = availableSlots.find(s => s.id === slotId);
+                if (slot && confirm(`【警告】\n确定要永久删除整个【${formatDisplayLabel(slot)}】场次及其所有报名记录吗？\n\n此操作无法撤销！`)) {
+                    const slotDefPromise = slotsDefRef.child(slotId).remove();
+                    const slotGamesPromise = database.ref('games/' + slotId).remove();
+                    Promise.all([slotDefPromise, slotGamesPromise]).then(() => {
+                        alert("场次已成功删除。");
+                    });
+                }
+                return;
+            }
+            const header = target.closest('.slot-header');
             if (header) {
                 header.parentElement.classList.toggle('active');
             }
